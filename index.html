@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Phantom Key Admin | Dashboard Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at 20% 30%, #0a0f1e, #03050a);
+            min-height: 100vh;
+            color: #eef5ff;
+            overflow-x: hidden;
+            position: relative;
+        }
+        canvas#three-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* Glass container */
+        .dashboard-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 1rem auto;
+            padding: 1rem;
+        }
+        /* Header stats cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card-glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: 0.2s;
+            text-align: center;
+        }
+        .stat-card-glass:hover {
+            transform: translateY(-3px);
+            border-color: #38bdf8;
+        }
+        .stat-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #94a3b8;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #38bdf8;
+            margin: 0.5rem 0;
+        }
+        .stat-sub {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        /* Charts row */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .chart-card h3 {
+            color: #38bdf8;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        canvas { max-height: 250px; width: 100%; }
+        /* Traditional UI components (same as before) */
+        .glass-panel {
+            background: rgba(5, 10, 20, 0.55);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .url-bar, .toolbar, .control-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 1rem 0;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            padding: 0.8rem 1.2rem;
+            border-radius: 1.5rem;
+        }
+        .url-bar input {
+            flex: 1;
+            min-width: 200px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 2rem;
+            padding: 0.7rem 1.2rem;
+            color: white;
+        }
+        input, select, textarea {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            padding: 0.6rem 1rem;
+            color: white;
+        }
+        button {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+        .danger-btn {
+            border-color: #f43f5e;
+            color: #f43f5e;
+        }
+        .danger-btn:hover { background: #f43f5e; color: #0f172a; }
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 400px;
+            border-radius: 1rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: #0f172a; color: #38bdf8; padding: 10px 6px; position: sticky; top: 0; }
+        td { padding: 8px 4px; border-bottom: 1px solid #1e293b; }
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 1rem; }
+        .badge { background: #1e293b; border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; }
+        .status-on { background: #0f172a; color: #38bdf8; border: 1px solid #38bdf8; }
+        .status-off { background: #1e293b; color: #f43f5e; border: 1px solid #f43f5e; }
+        .visualizer-canvas {
+            width: 100%;
+            height: 60px;
+            background: #0f172a;
+            border-radius: 20px;
+            margin-top: 8px;
+            border: 1px solid #334155;
+        }
+        .spotify-iframe {
+            width: 100%;
+            height: 80px;
+            border: none;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+        /* Custom cursor + effects (simplified) */
+        .custom-cursor {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.15);
+            border: 2px solid #38bdf8;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: 0.08s linear;
+        }
+        .mouse-trail {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle, #38bdf8, #818cf8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            filter: blur(2px);
+            animation: fadeTrail 0.6s ease-out forwards;
+        }
+        @keyframes fadeTrail {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 0; transform: scale(2.5); }
+        }
+        .ripple {
+            position: fixed;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.4), rgba(129, 140, 248, 0));
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9997;
+            animation: rippleAnim 0.5s ease-out forwards;
+        }
+        @keyframes rippleAnim {
+            0% { width: 0; height: 0; opacity: 0.5; }
+            100% { width: 140px; height: 140px; opacity: 0; }
+        }
+        .click-particle {
+            position: fixed;
+            width: 5px;
+            height: 5px;
+            background: #38bdf8;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9996;
+            animation: particleFly 0.5s ease-out forwards;
+        }
+        @keyframes particleFly {
+            0% { opacity: 0.8; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+        }
+        @media (max-width: 700px) {
+            .charts-row { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+<canvas id="three-bg"></canvas>
+<div class="custom-cursor"></div>
+
+<div class="dashboard-container">
+    <!-- Stats Cards -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card-glass">
+            <div class="stat-title">TỔNG KEY</div>
+            <div class="stat-number" id="totalKeys">0</div>
+            <div class="stat-sub">tất cả</div>
+        </div>
+        <div class="stat-card-glass">
+            <div class="stat-title">CHƯA DÙNG</div>
+            <div class="stat-number" id="unusedKeys">0</div>
+            <div class="stat-sub">chưa kích hoạt</div>
+        </div>
+        <div class="stat-card-glass">
+            <div class="stat-title">ĐÃ DÙNG</div>
+            <div class="stat-number" id="usedKeys">0</div>
+            <div class="stat-sub">đã kích hoạt</div>
+        </div>
+        <div class="stat-card-glass">
+            <div class="stat-title">CÒN HẠN</div>
+            <div class="stat-number" id="activeKeys">0</div>
+            <div class="stat-sub">key đang hoạt động</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-pie"></i> Phân bố trạng thái key</h3>
+            <canvas id="statusPieChart" width="400" height="250"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-line"></i> Xu hướng kích hoạt (7 ngày)</h3>
+            <canvas id="trendChart" width="400" height="250"></canvas>
+        </div>
+    </div>
+
+    <!-- URL Config -->
+    <div class="glass-panel">
+        <div class="url-bar">
+            <i class="fas fa-link"></i>
+            <input type="text" id="keyApiUrl" placeholder="URL API Key" style="flex:2" value="https://script.google.com/macros/s/AKfycbyLGSH16onKckObi4fBmfCAjNiknjqWQC2drr9HPFRQ2MoRmmGXRUvneSisFlDgK03YBg/exec">
+            <input type="text" id="blockApiUrl" placeholder="URL API Block" style="flex:2" value="https://script.google.com/macros/s/AKfycbxL2JGR0SxrKpZcPFNRkLl8vdwUyncPUxLzg28UihFBPyagixBEMpsi6rGwAdEXHQY6/exec">
+            <button id="saveUrlsBtn"><i class="fas fa-save"></i> Lưu URL</button>
+            <button id="refreshAllBtn"><i class="fas fa-sync-alt"></i> Làm mới</button>
+        </div>
+    </div>
+
+    <!-- Control Cards (Maintenance, Broadcast, Blacklist) -->
+    <div class="glass-panel">
+        <div class="control-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1rem;">
+            <div class="card" style="background: rgba(15,23,42,0.6); border-radius:1.5rem; padding:1rem;">
+                <h3><i class="fas fa-tools"></i> Bảo trì toàn cầu</h3>
+                <div id="maintenanceStatus" class="badge status-off">● TẮT</div>
+                <button id="toggleMaintenanceBtn" style="margin-top: 10px; width:100%"><i class="fas fa-power-off"></i> Bật/Tắt</button>
+                <div id="maintenanceMsg" style="font-size:0.7rem; margin-top:6px;"></div>
+            </div>
+            <div class="card" style="background: rgba(15,23,42,0.6); border-radius:1.5rem; padding:1rem;">
+                <h3><i class="fas fa-broadcast-tower"></i> Broadcast</h3>
+                <textarea id="broadcastMessage" rows="2" placeholder="Tin nhắn..." style="width:100%; border-radius:1rem;"></textarea>
+                <button id="sendBroadcastBtn" style="margin-top: 8px; width:100%"><i class="fas fa-paper-plane"></i> Gửi</button>
+                <div id="broadcastResult" style="font-size:0.7rem;"></div>
+            </div>
+            <div class="card" style="background: rgba(15,23,42,0.6); border-radius:1.5rem; padding:1rem;">
+                <h3><i class="fas fa-ban"></i> Blacklist IP / Device</h3>
+                <select id="blacklistType" style="width:100%; margin-bottom:6px;"><option value="ip">IP</option><option value="device">Device ID</option></select>
+                <input type="text" id="blacklistValue" placeholder="Giá trị" style="width:100%; margin-bottom:6px;">
+                <input type="text" id="blacklistReason" placeholder="Lý do" style="width:100%; margin-bottom:6px;">
+                <div style="display:flex; gap:6px;">
+                    <button id="addBlacklistBtn" style="flex:1"><i class="fas fa-plus"></i> Thêm</button>
+                    <button id="removeBlacklistBtn" style="flex:1" class="danger-btn"><i class="fas fa-trash"></i> Xóa</button>
+                </div>
+                <button id="refreshBlacklistBtn" style="width:100%; margin-top:6px;"><i class="fas fa-list"></i> Tải danh sách</button>
+                <div id="blacklistList" style="max-height:120px; overflow-y:auto; margin-top:8px; font-size:0.7rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Management -->
+    <div class="glass-panel">
+        <div class="toolbar">
+            <label><i class="fas fa-random"></i> Random SL:</label>
+            <input type="number" id="keyCount" value="100" min="1" style="width:80px">
+            <label><i class="fas fa-hourglass-half"></i> Giờ:</label>
+            <input type="number" id="keyDuration" placeholder="random" style="width:80px">
+            <label><i class="fas fa-calendar-alt"></i> Hết hạn:</label>
+            <input type="datetime-local" id="keyExpiry" step="1" style="width:200px">
+            <button id="addBtn"><i class="fas fa-plus-circle"></i> Thêm random</button>
+            <button id="deleteAllBtn" class="danger-btn"><i class="fas fa-trash-alt"></i> Xóa tất cả</button>
+        </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <textarea id="customKeysInput" placeholder="Key tùy chỉnh (cách nhau bằng dấu phẩy hoặc xuống dòng)" style="flex:2; min-height:60px;"></textarea>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <button id="addCustomBtn"><i class="fas fa-plus-square"></i> Thêm key</button>
+                <button id="addCustomWithTimeBtn"><i class="fas fa-clock"></i> Thêm + thời hạn</button>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <span><i class="fas fa-tools"></i> Sửa hàng loạt:</span>
+            <label><input type="checkbox" id="selectAllCheckbox"> Chọn tất cả</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-clock"></i>
+                <input type="range" id="batchHoursSlider" min="1" max="72" value="24" style="width:150px">
+                <span id="batchHoursValue">24</span> giờ
+            </div>
+            <button id="batchUpdateBtn" class="danger-btn"><i class="fas fa-save"></i> Áp dụng</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="keyTable">
+                <thead><tr><th><input type="checkbox" id="headerCheckbox"></th><th>Key</th><th>Trạng thái</th><th>Thiết bị</th><th>Hạn(giờ)</th><th>Hết hạn (VN)</th><th>Xóa</th><th>Sửa hạn</th></tr></thead>
+                <tbody id="keyTableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Music Visualizer & Spotify -->
+    <div style="position: fixed; bottom: 20px; left: 20px; z-index: 1000; background: rgba(0,0,0,0.7); border-radius: 20px; padding: 10px; width: 300px;">
+        <div style="display: flex; justify-content: space-between;">
+            <span style="color:#38bdf8;"><i class="fab fa-spotify"></i> Sóng ảo</span>
+            <button id="toggleMusicPanel" style="background:none; border:none; color:#38bdf8;">▼</button>
+        </div>
+        <canvas id="visualizer" class="visualizer-canvas" width="280" height="60"></canvas>
+        <iframe id="spotifyIframe" class="spotify-iframe" src="https://open.spotify.com/embed/track/7qyBCDQI8euuwioSxdoGPT?utm_source=generator" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // ==================== 3D BACKGROUND ====================
+    let scene, camera, renderer, mainKnot, stars;
+    function init3D() {
+        const canvas = document.getElementById('three-bg');
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        const geometry = new THREE.TorusKnotGeometry(1.3, 0.35, 200, 32, 3, 4);
+        const material = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.5 });
+        mainKnot = new THREE.Mesh(geometry, material);
+        scene.add(mainKnot);
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 2000;
+        const starsPos = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount; i++) {
+            starsPos[i*3] = (Math.random() - 0.5) * 2000;
+            starsPos[i*3+1] = (Math.random() - 0.5) * 1000;
+            starsPos[i*3+2] = (Math.random() - 0.5) * 600 - 200;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
+        stars = new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0x88aaff, size: 0.25 }));
+        scene.add(stars);
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(2, 5, 3);
+        scene.add(dirLight);
+        camera.position.z = 5.2;
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.008;
+            mainKnot.rotation.x = time * 0.4;
+            mainKnot.rotation.y = time * 0.7;
+            stars.rotation.y = time * 0.02;
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+    init3D();
+
+    // ==================== MOUSE EFFECTS ====================
+    const cursor = document.querySelector('.custom-cursor');
+    document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+        const trail = document.createElement('div');
+        trail.className = 'mouse-trail';
+        trail.style.left = e.clientX + 'px';
+        trail.style.top = e.clientY + 'px';
+        document.body.appendChild(trail);
+        setTimeout(() => trail.remove(), 600);
+    });
+    document.addEventListener('click', (e) => {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        ripple.style.left = e.clientX + 'px';
+        ripple.style.top = e.clientY + 'px';
+        document.body.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 500);
+        for (let i = 0; i < 12; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 40 + Math.random() * 80;
+            const dx = Math.cos(angle) * speed;
+            const dy = Math.sin(angle) * speed;
+            const particle = document.createElement('div');
+            particle.className = 'click-particle';
+            particle.style.left = e.clientX + 'px';
+            particle.style.top = e.clientY + 'px';
+            particle.style.setProperty('--dx', dx + 'px');
+            particle.style.setProperty('--dy', dy + 'px');
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 500);
+        }
+    });
+
+    // ==================== FAKE VISUALIZER ====================
+    const visualizerCanvas = document.getElementById('visualizer');
+    const ctxVis = visualizerCanvas.getContext('2d');
+    let visWidth = visualizerCanvas.clientWidth;
+    let visHeight = visualizerCanvas.clientHeight;
+    function resizeVis() {
+        visWidth = visualizerCanvas.clientWidth;
+        visHeight = visualizerCanvas.clientHeight;
+        visualizerCanvas.width = visWidth;
+        visualizerCanvas.height = visHeight;
+    }
+    window.addEventListener('resize', resizeVis);
+    resizeVis();
+    function drawWave() {
+        ctxVis.clearRect(0, 0, visWidth, visHeight);
+        ctxVis.fillStyle = '#0f172a';
+        ctxVis.fillRect(0, 0, visWidth, visHeight);
+        const barCount = 45;
+        const barWidth = visWidth / barCount;
+        for (let i = 0; i < barCount; i++) {
+            const t = Date.now() * 0.004;
+            const heightFactor = (Math.sin(t + i * 0.2) + 1) / 2;
+            const randomFactor = Math.sin(t * 1.3 + i) * 0.2 + 0.5;
+            const barHeight = (heightFactor * 0.7 + randomFactor * 0.3) * visHeight * 0.65;
+            const x = i * barWidth;
+            const y = visHeight - barHeight;
+            const intensity = 0.4 + heightFactor * 0.6;
+            ctxVis.fillStyle = `rgba(56, 189, 248, ${intensity})`;
+            ctxVis.fillRect(x, y, barWidth - 1, barHeight);
+        }
+        ctxVis.beginPath();
+        ctxVis.strokeStyle = '#38bdf8';
+        ctxVis.lineWidth = 2;
+        for (let i = 0; i <= barCount; i++) {
+            const x = i * barWidth;
+            const y = visHeight - (Math.sin(Date.now() * 0.005 + i * 0.15) * 0.2 + 0.5) * visHeight * 0.5;
+            if (i === 0) ctxVis.moveTo(x, y);
+            else ctxVis.lineTo(x, y);
+        }
+        ctxVis.stroke();
+        requestAnimationFrame(drawWave);
+    }
+    drawWave();
+    // Spotify toggle
+    let panelVisible = true;
+    document.getElementById('toggleMusicPanel').onclick = () => {
+        const iframe = document.getElementById('spotifyIframe');
+        const canvas = document.getElementById('visualizer');
+        if (panelVisible) {
+            iframe.style.display = 'none';
+            canvas.style.display = 'none';
+            panelVisible = false;
+        } else {
+            iframe.style.display = 'block';
+            canvas.style.display = 'block';
+            panelVisible = true;
+        }
+    };
+
+    // ==================== DASHBOARD LOGIC ====================
+    let KEY_API_URL = localStorage.getItem('phantom_key_api') || "https://script.google.com/macros/s/AKfycbyLGSH16onKckObi4fBmfCAjNiknjqWQC2drr9HPFRQ2MoRmmGXRUvneSisFlDgK03YBg/exec";
+    let BLOCK_API_URL = localStorage.getItem('phantom_block_api') || "https://script.google.com/macros/s/AKfycbxL2JGR0SxrKpZcPFNRkLl8vdwUyncPUxLzg28UihFBPyagixBEMpsi6rGwAdEXHQY6/exec";
+    document.getElementById('keyApiUrl').value = KEY_API_URL;
+    document.getElementById('blockApiUrl').value = BLOCK_API_URL;
+
+    document.getElementById('saveUrlsBtn').onclick = () => {
+        KEY_API_URL = document.getElementById('keyApiUrl').value.trim();
+        BLOCK_API_URL = document.getElementById('blockApiUrl').value.trim();
+        localStorage.setItem('phantom_key_api', KEY_API_URL);
+        localStorage.setItem('phantom_block_api', BLOCK_API_URL);
+        alert('Đã lưu URL');
+        loadAllData();
+    };
+
+    let allKeys = [], currentPage = 1, rowsPerPage = 100, selectedKeys = new Set(), maintenanceActive = false, blacklistData = [];
+    let pieChart, trendChart;
+
+    async function fetchKeys() {
+        const res = await fetch(`${KEY_API_URL}?action=getKeys`);
+        const data = await res.json();
+        if (data && Array.isArray(data.keys)) return data.keys;
+        if (Array.isArray(data)) return data;
+        return [];
+    }
+    async function addKey(key, durationHours, expiryISO) {
+        let url = `${KEY_API_URL}?action=addKey&key=${encodeURIComponent(key)}`;
+        if (durationHours && durationHours > 0) url += `&durationHours=${durationHours}`;
+        if (expiryISO) url += `&expiry=${encodeURIComponent(expiryISO)}`;
+        await fetch(url);
+    }
+    async function deleteKey(key) { await fetch(`${KEY_API_URL}?action=deleteKey&key=${encodeURIComponent(key)}`); }
+    async function updateKey(key, durationHours) { await fetch(`${KEY_API_URL}?action=updateKey&key=${encodeURIComponent(key)}&durationHours=${durationHours}`); }
+    async function deleteAllKeys() { const keys = await fetchKeys(); for (let k of keys) await deleteKey(k.key); }
+
+    async function callBlockAPI(action, params = {}) {
+        let url = `${BLOCK_API_URL}?action=${action}`;
+        for (let k in params) url += `&${k}=${encodeURIComponent(params[k])}`;
+        const res = await fetch(url);
+        return res.json();
+    }
+    async function getMaintenanceStatus() { const data = await callBlockAPI('getMaintenance'); return data.maintenance === true; }
+    async function setMaintenanceStatus(value) { await callBlockAPI('setMaintenance', { value }); }
+    async function getBlacklist() { const data = await callBlockAPI('getBlacklist'); return data.blacklist || []; }
+    async function addToBlacklist(type, value, reason) { return callBlockAPI('addToBlacklist', { type, value, reason, addedBy: 'web_admin' }); }
+    async function removeFromBlacklist(type, value) { return callBlockAPI('removeFromBlacklist', { type, value }); }
+    async function sendBroadcast(message) { await callBlockAPI('sendBroadcast', { message, sender: 'web_admin' }); }
+
+    function formatVietnamTime(isoString) { if (!isoString) return '—'; return new Date(isoString).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }); }
+
+    async function loadData() {
+        if (!KEY_API_URL) return;
+        try {
+            allKeys = await fetchKeys();
+            updateStatsAndCharts();
+            renderTable();
+            renderPagination();
+        } catch(e) { console.error(e); }
+    }
+    function updateStatsAndCharts() {
+        let total = allKeys.length;
+        let unused = allKeys.filter(k => !k.used).length;
+        let used = allKeys.filter(k => k.used).length;
+        let active = allKeys.filter(k => k.used && new Date(k.expiry) > new Date()).length;
+        document.getElementById('totalKeys').innerText = total;
+        document.getElementById('unusedKeys').innerText = unused;
+        document.getElementById('usedKeys').innerText = used;
+        document.getElementById('activeKeys').innerText = active;
+        // Update pie chart
+        if (pieChart) pieChart.destroy();
+        const ctx = document.getElementById('statusPieChart').getContext('2d');
+        pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Chưa dùng', 'Đã dùng (còn hạn)', 'Đã dùng (hết hạn)'],
+                datasets: [{
+                    data: [unused, active, used - active],
+                    backgroundColor: ['#10b981', '#38bdf8', '#f43f5e'],
+                    borderWidth: 0
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } } }
+        });
+        // Fake trend chart (random demo)
+        if (trendChart) trendChart.destroy();
+        const ctx2 = document.getElementById('trendChart').getContext('2d');
+        trendChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: ['Hôm qua', '2 ngày', '3 ngày', '4 ngày', '5 ngày', '6 ngày', '7 ngày'],
+                datasets: [{
+                    label: 'Số key kích hoạt',
+                    data: [Math.floor(Math.random()*10), Math.floor(Math.random()*15), Math.floor(Math.random()*8), Math.floor(Math.random()*20), Math.floor(Math.random()*12), Math.floor(Math.random()*6), Math.floor(Math.random()*18)],
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } } }
+        });
+    }
+
+    function renderTable() {
+        const start = (currentPage-1)*rowsPerPage;
+        const pageKeys = allKeys.slice(start, start+rowsPerPage);
+        const tbody = document.getElementById('keyTableBody');
+        tbody.innerHTML = '';
+        pageKeys.forEach(k => {
+            let status = !k.used ? '🟢 Chưa dùng' : (new Date(k.expiry) > new Date() ? '✅ Còn hạn' : '⛔ Hết hạn');
+            let device = k.deviceId ? k.deviceId.slice(0,8)+'…' : '—';
+            let expiryDisplay = formatVietnamTime(k.expiry);
+            let duration = k.durationHours ? k.durationHours + 'h' : '—';
+            const row = tbody.insertRow();
+            const cbCell = row.insertCell(0);
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = selectedKeys.has(k.key);
+            cb.onchange = () => { if(cb.checked) selectedKeys.add(k.key); else selectedKeys.delete(k.key); updateHeaderCheckbox(); };
+            cbCell.appendChild(cb);
+            row.insertCell(1).innerHTML = `<span style="font-family:monospace">${k.key}</span>`;
+            row.insertCell(2).innerHTML = status;
+            row.insertCell(3).innerHTML = device;
+            row.insertCell(4).innerHTML = duration;
+            row.insertCell(5).innerHTML = expiryDisplay;
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.style.cssText = 'background:none; border:1px solid #f43f5e; color:#f43f5e; border-radius:20px; padding:4px 8px; cursor:pointer;';
+            delBtn.onclick = async () => { if(confirm(`Xóa key ${k.key}?`)) { await deleteKey(k.key); loadData(); } };
+            row.insertCell(6).appendChild(delBtn);
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.style.cssText = 'background:none; border:1px solid #38bdf8; color:#38bdf8; border-radius:20px; padding:4px 8px; cursor:pointer;';
+            editBtn.disabled = k.used;
+            editBtn.onclick = async () => { const newHours = prompt(`Nhập số giờ mới cho key ${k.key}:`, k.durationHours || ''); if (newHours && !isNaN(parseInt(newHours))) { await updateKey(k.key, parseInt(newHours)); loadData(); } };
+            row.insertCell(7).appendChild(editBtn);
+        });
+        updateHeaderCheckbox();
+    }
+    function updateHeaderCheckbox() {
+        const start = (currentPage-1)*rowsPerPage;
+        const pageKeys = allKeys.slice(start, start+rowsPerPage);
+        const headerCb = document.getElementById('headerCheckbox');
+        if (headerCb) {
+            const allSelected = pageKeys.length > 0 && pageKeys.every(k => selectedKeys.has(k.key));
+            headerCb.checked = allSelected;
+            headerCb.indeterminate = !allSelected && pageKeys.some(k => selectedKeys.has(k.key));
+        }
+    }
+    function renderPagination() {
+        const totalPages = Math.ceil(allKeys.length / rowsPerPage);
+        const container = document.getElementById('pagination');
+        container.innerHTML = '';
+        if(totalPages<=1) return;
+        const prev = document.createElement('button'); prev.innerHTML = '◀'; prev.onclick = () => { if(currentPage>1) { currentPage--; renderTable(); renderPagination(); } }; container.appendChild(prev);
+        for(let i=1;i<=totalPages;i++) {
+            if(i>1 && i<totalPages && Math.abs(i-currentPage)>2) continue;
+            const btn = document.createElement('button'); btn.innerText = i; if(i===currentPage) btn.classList.add('active'); btn.onclick = () => { currentPage=i; renderTable(); renderPagination(); }; container.appendChild(btn);
+        }
+        const next = document.createElement('button'); next.innerHTML = '▶'; next.onclick = () => { if(currentPage<totalPages) { currentPage++; renderTable(); renderPagination(); } }; container.appendChild(next);
+    }
+
+    async function loadMaintenanceAndBlacklist() {
+        if (!BLOCK_API_URL) return;
+        try {
+            maintenanceActive = await getMaintenanceStatus();
+            const statusDiv = document.getElementById('maintenanceStatus');
+            if (maintenanceActive) { statusDiv.innerHTML = '🟢 BẢO TRÌ ĐANG BẬT'; statusDiv.className = 'badge status-on'; document.getElementById('maintenanceMsg').innerHTML = '🔧 Đang bảo trì'; }
+            else { statusDiv.innerHTML = '🔴 BẢO TRÌ ĐANG TẮT'; statusDiv.className = 'badge status-off'; document.getElementById('maintenanceMsg').innerHTML = ''; }
+            blacklistData = await getBlacklist();
+            renderBlacklist();
+        } catch(e) {}
+    }
+    function renderBlacklist() {
+        const container = document.getElementById('blacklistList');
+        if (!blacklistData.length) { container.innerHTML = '<i>Chưa có dữ liệu</i>'; return; }
+        let html = '';
+        for (let b of blacklistData) html += `<div>🔴 ${b.type.toUpperCase()}: ${b.value} - ${b.reason || ''} (${b.addedBy})</div>`;
+        container.innerHTML = html;
+    }
+
+    document.getElementById('addBtn').onclick = async () => {
+        let count = parseInt(document.getElementById('keyCount').value);
+        let duration = parseInt(document.getElementById('keyDuration').value);
+        if (isNaN(duration)) duration = null;
+        let expiryISO = document.getElementById('keyExpiry').value ? new Date(document.getElementById('keyExpiry').value).toISOString() : null;
+        for(let i=0;i<count;i++) { let newKey = Math.random().toString(36).substring(2,12); await addKey(newKey, duration, expiryISO); }
+        loadData();
+    };
+    document.getElementById('addCustomBtn').onclick = async () => {
+        const raw = document.getElementById('customKeysInput').value;
+        if (!raw.trim()) return alert('Nhập key');
+        let keys = raw.split(/[,\n]+/).map(s=>s.trim()).filter(s=>s.length);
+        for (let k of keys) await addKey(k, null, null);
+        alert(`Đã thêm ${keys.length} key`);
+        loadData();
+        document.getElementById('customKeysInput').value = '';
+    };
+    document.getElementById('addCustomWithTimeBtn').onclick = async () => {
+        const raw = document.getElementById('customKeysInput').value;
+        if (!raw.trim()) return alert('Nhập key');
+        let keys = raw.split(/[,\n]+/).map(s=>s.trim()).filter(s=>s.length);
+        let duration = parseInt(document.getElementById('keyDuration').value);
+        if (isNaN(duration)) duration = null;
+        let expiryISO = document.getElementById('keyExpiry').value ? new Date(document.getElementById('keyExpiry').value).toISOString() : null;
+        for (let k of keys) await addKey(k, duration, expiryISO);
+        alert(`Đã thêm ${keys.length} key với thời hạn`);
+        loadData();
+        document.getElementById('customKeysInput').value = '';
+    };
+    document.getElementById('deleteAllBtn').onclick = async () => { if(confirm('Xóa TOÀN BỘ key?')) { await deleteAllKeys(); loadData(); } };
+    document.getElementById('batchUpdateBtn').onclick = async () => {
+        if (selectedKeys.size === 0) return alert('Chọn key');
+        const hours = parseInt(document.getElementById('batchHoursSlider').value);
+        for (let key of selectedKeys) await updateKey(key, hours);
+        selectedKeys.clear();
+        loadData();
+    };
+    document.getElementById('selectAllCheckbox').onchange = (e) => {
+        const start = (currentPage-1)*rowsPerPage;
+        const pageKeys = allKeys.slice(start, start+rowsPerPage);
+        if (e.target.checked) pageKeys.forEach(k => selectedKeys.add(k.key));
+        else pageKeys.forEach(k => selectedKeys.delete(k.key));
+        renderTable();
+    };
+    document.getElementById('headerCheckbox').onchange = (e) => {
+        const start = (currentPage-1)*rowsPerPage;
+        const pageKeys = allKeys.slice(start, start+rowsPerPage);
+        if (e.target.checked) pageKeys.forEach(k => selectedKeys.add(k.key));
+        else pageKeys.forEach(k => selectedKeys.delete(k.key));
+        renderTable();
+    };
+    document.getElementById('batchHoursSlider').oninput = function() { document.getElementById('batchHoursValue').innerText = this.value; };
+    document.getElementById('toggleMaintenanceBtn').onclick = async () => {
+        if (!BLOCK_API_URL) return alert('Chưa nhập API Block URL');
+        const newStatus = !maintenanceActive;
+        await setMaintenanceStatus(newStatus);
+        maintenanceActive = newStatus;
+        const statusDiv = document.getElementById('maintenanceStatus');
+        if (maintenanceActive) { statusDiv.innerHTML = '🟢 BẢO TRÌ ĐANG BẬT'; statusDiv.className = 'badge status-on'; document.getElementById('maintenanceMsg').innerHTML = '🔧 Đang bảo trì'; }
+        else { statusDiv.innerHTML = '🔴 BẢO TRÌ ĐANG TẮT'; statusDiv.className = 'badge status-off'; document.getElementById('maintenanceMsg').innerHTML = ''; }
+        alert(`Bảo trì ${newStatus ? 'BẬT' : 'TẮT'}`);
+    };
+    document.getElementById('sendBroadcastBtn').onclick = async () => {
+        const msg = document.getElementById('broadcastMessage').value.trim();
+        if (!msg) return alert('Nhập tin nhắn');
+        if (!BLOCK_API_URL) return alert('Chưa có API Block');
+        try {
+            await sendBroadcast(msg);
+            document.getElementById('broadcastResult').innerHTML = '✅ Đã gửi broadcast!';
+            setTimeout(() => document.getElementById('broadcastResult').innerHTML = '', 3000);
+        } catch(e) { alert('Lỗi: ' + e.message); }
+    };
+    document.getElementById('addBlacklistBtn').onclick = async () => {
+        const type = document.getElementById('blacklistType').value;
+        const value = document.getElementById('blacklistValue').value.trim();
+        const reason = document.getElementById('blacklistReason').value.trim();
+        if (!value) return alert('Nhập giá trị');
+        if (!BLOCK_API_URL) return alert('Chưa có API Block');
+        const res = await addToBlacklist(type, value, reason);
+        alert(res.message);
+        await loadMaintenanceAndBlacklist();
+        document.getElementById('blacklistValue').value = '';
+        document.getElementById('blacklistReason').value = '';
+    };
+    document.getElementById('removeBlacklistBtn').onclick = async () => {
+        const value = document.getElementById('blacklistValue').value.trim();
+        if (!value) return alert('Nhập giá trị cần xóa');
+        if (!BLOCK_API_URL) return alert('Chưa có API Block');
+        const type = document.getElementById('blacklistType').value;
+        const res = await removeFromBlacklist(type, value);
+        alert(res.message);
+        await loadMaintenanceAndBlacklist();
+        document.getElementById('blacklistValue').value = '';
+    };
+    document.getElementById('refreshBlacklistBtn').onclick = async () => { await loadMaintenanceAndBlacklist(); };
+    document.getElementById('refreshAllBtn').onclick = () => { loadData(); loadMaintenanceAndBlacklist(); };
+
+    async function loadAllData() {
+        await loadData();
+        if (BLOCK_API_URL) await loadMaintenanceAndBlacklist();
+    }
+    loadAllData();
+    setInterval(() => { loadData(); if(BLOCK_API_URL) loadMaintenanceAndBlacklist(); }, 20000);
+</script>
+</body>
+</html>
